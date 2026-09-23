@@ -21,4 +21,5 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pre-commit>=4.6.2",
+    "prek>=0.5.3",
 ]
