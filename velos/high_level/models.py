@@ -15,7 +15,7 @@ class Ville(models.Model):
     nom = models.CharField(max_length=100)
     taxe_immobiliere = models.IntegerField()
     prix_m2 = models.IntegerField()
-    pays = models.ForeignKey(Pays, on_delete=models.PROTECT)
+    pays = models.ForeignKey(Pays, on_delete=models.PROTECT,blank=True, null=True)
 
     def __str__(self):
         return self.nom
@@ -23,7 +23,7 @@ class Ville(models.Model):
 
 class Lieu(models.Model):
     nom = models.CharField(max_length=100)
-    ville = models.ForeignKey(Ville, on_delete=models.PROTECT)
+    ville = models.ForeignKey(Ville, on_delete=models.PROTECT,blank=True, null=True)
     superficie = models.IntegerField()
     quantite_machines = models.ManyToManyField("QuantiteMachine")
     consommation_electrique = models.IntegerField()
@@ -44,7 +44,7 @@ class Machine(models.Model):
 
 
 class QuantiteMachine(models.Model):
-    machine = models.ForeignKey(Machine, on_delete=models.PROTECT)
+    machine = models.ForeignKey(Machine, on_delete=models.PROTECT,blank=True, null=True)
     nombre = models.IntegerField()
 
     def __str__(self):
@@ -60,9 +60,9 @@ class Operation(models.Model):
 
     cout = models.IntegerField()
 
-    machine = models.ForeignKey(Machine, on_delete=models.PROTECT)
+    machine = models.ForeignKey(Machine, on_delete=models.PROTECT,blank=True, null=True)
 
-    quantite_produits = models.ManyToManyField("QuantiteProduit")
+    quantite_produits = models.ManyToManyField("QuantiteProduit",blank=True, null=True)
 
     heures_de_travail = models.IntegerField()
     consommation_electrique = models.IntegerField()
@@ -77,14 +77,14 @@ class Produit(models.Model):
     duree_de_vie = models.IntegerField()
     nombre_par_palette = models.IntegerField()
 
-    operations = models.ManyToManyField(Operation)
+    operations = models.ManyToManyField(Operation,blank=True, null=True)
 
     def __str__(self):
         return self.nom
 
 
 class QuantiteProduit(models.Model):
-    produit = models.ForeignKey(Produit, on_delete=models.PROTECT)
+    produit = models.ForeignKey(Produit, on_delete=models.PROTECT,blank=True, null=True)
     nombre = models.IntegerField()
 
     def __str__(self):
@@ -108,7 +108,7 @@ class Fournisseur(models.Model):
 
 
 class PrixProduit(models.Model):
-    produit = models.ForeignKey(Produit, on_delete=models.PROTECT)
+    produit = models.ForeignKey(Produit, on_delete=models.PROTECT,blank=True, null=True)
     prix_achat = models.IntegerField()
 
     def __str__(self):
@@ -121,11 +121,11 @@ class Transport(models.Model):
     delai = models.IntegerField()
 
     depart = models.ForeignKey(
-        Lieu, on_delete=models.PROTECT, related_name="transports_depart"
+        Lieu, on_delete=models.PROTECT, related_name="transports_depart",blank=True, null=True
     )
 
     arrivee = models.ForeignKey(
-        Lieu, on_delete=models.PROTECT, related_name="transports_arrivee"
+        Lieu, on_delete=models.PROTECT, related_name="transports_arrivee",blank=True, null=True
     )
 
     def __str__(self):
