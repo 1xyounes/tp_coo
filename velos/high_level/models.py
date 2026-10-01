@@ -10,6 +10,15 @@ class Pays(models.Model):
     def __str__(self):
         return self.nom
 
+    def json(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            "tva": self.tva,
+            "tarif_electrique": self.tarif_electrique,
+            "salaire_minimum": self.salaire_minimum,
+        }
+
 
 class Ville(models.Model):
     nom = models.CharField(max_length=100)
@@ -23,6 +32,15 @@ class Ville(models.Model):
     def costs(self):
         # coût de tous les lieux situés dans la ville
         return sum(lieu.costs() for lieu in self.lieu_set.all())
+
+    def json(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            "taxe_immobiliere": self.taxe_immobiliere,
+            "prix_m2": self.prix_m2,
+            "pays": self.pays.json() if self.pays else None,
+        }
 
 
 class Lieu(models.Model):
@@ -43,6 +61,16 @@ class Lieu(models.Model):
         points_de_vente = sum(pdv.costs() for pdv in self.pointdevente_set.all())
         return terrain + electricite + machines + points_de_vente
 
+    def json(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            "ville": self.ville.json() if self.ville else None,
+            "superficie": self.superficie,
+            "quantite_machines": [qm.json() for qm in self.quantite_machines.all()],
+            "consommation_electrique": self.consommation_electrique,
+        }
+
 
 class Machine(models.Model):
     nom = models.CharField(max_length=100)
@@ -57,6 +85,16 @@ class Machine(models.Model):
     def costs(self):
         return self.prix
 
+    def json(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            "prix": self.prix,
+            "duree_de_vie": self.duree_de_vie,
+            "cout_maintenance": self.cout_maintenance,
+            "superficie": self.superficie,
+        }
+
 
 class QuantiteMachine(models.Model):
     machine = models.ForeignKey(
@@ -69,6 +107,13 @@ class QuantiteMachine(models.Model):
 
     def costs(self):
         return self.nombre * self.machine.costs()
+
+    def json(self):
+        return {
+            "id": self.id,
+            "machine": self.machine.json() if self.machine else None,
+            "nombre": self.nombre,
+        }
 
 
 class Operation(models.Model):
@@ -96,6 +141,19 @@ class Operation(models.Model):
         # coût propre de l'opération + matières consommées
         return self.cout + sum(qp.costs() for qp in self.quantite_produits.all())
 
+    def json(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            # juste l'id : une chaîne d'opérations pourrait boucler sur elle-même
+            "operation_suivante": self.operation_suivante_id,
+            "cout": self.cout,
+            "machine": self.machine.json() if self.machine else None,
+            "quantite_produits": [qp.json() for qp in self.quantite_produits.all()],
+            "heures_de_travail": self.heures_de_travail,
+            "consommation_electrique": self.consommation_electrique,
+        }
+
 
 class Produit(models.Model):
     nom = models.CharField(max_length=100)
@@ -112,6 +170,18 @@ class Produit(models.Model):
         # coût de fabrication = somme des opérations
         return sum(op.costs() for op in self.operations.all())
 
+    def json(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            "prix_de_vente": self.prix_de_vente,
+            "duree_de_vie": self.duree_de_vie,
+            "nombre_par_palette": self.nombre_par_palette,
+            # juste les id : Operation.json() contient des produits,
+            # qui contiendraient leurs opérations… => boucle infinie
+            "operations": [op.id for op in self.operations.all()],
+        }
+
 
 class QuantiteProduit(models.Model):
     produit = models.ForeignKey(
@@ -125,6 +195,13 @@ class QuantiteProduit(models.Model):
     def costs(self):
         return self.nombre * self.produit.prix_de_vente
 
+    def json(self):
+        return {
+            "id": self.id,
+            "produit": self.produit.json() if self.produit else None,
+            "nombre": self.nombre,
+        }
+
 
 class Stock(models.Model):
     quantite_produits = models.ManyToManyField(QuantiteProduit)
@@ -136,6 +213,13 @@ class Stock(models.Model):
     def costs(self):
         return sum(qp.costs() for qp in self.quantite_produits.all())
 
+    def json(self):
+        return {
+            "id": self.id,
+            "quantite_produits": [qp.json() for qp in self.quantite_produits.all()],
+            "palettes_max": self.palettes_max,
+        }
+
 
 class Fournisseur(models.Model):
     nom = models.CharField(max_length=100)
@@ -143,6 +227,13 @@ class Fournisseur(models.Model):
 
     def __str__(self):
         return self.nom
+
+    def json(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            "prix_produits": [pp.json() for pp in self.prix_produits.all()],
+        }
 
 
 class PrixProduit(models.Model):
@@ -153,6 +244,13 @@ class PrixProduit(models.Model):
 
     def __str__(self):
         return f"{self.produit} - {self.prix_achat}"
+
+    def json(self):
+        return {
+            "id": self.id,
+            "produit": self.produit.json() if self.produit else None,
+            "prix_achat": self.prix_achat,
+        }
 
 
 class Transport(models.Model):
@@ -182,6 +280,16 @@ class Transport(models.Model):
     def costs(self):
         return self.nombre_palettes * self.cout
 
+    def json(self):
+        return {
+            "id": self.id,
+            "nombre_palettes": self.nombre_palettes,
+            "cout": self.cout,
+            "delai": self.delai,
+            "depart": self.depart.json() if self.depart else None,
+            "arrivee": self.arrivee.json() if self.arrivee else None,
+        }
+
 
 class PointDeVente(models.Model):
     nom = models.CharField(max_length=100)
@@ -199,6 +307,15 @@ class PointDeVente(models.Model):
         salaires = self.heures_de_travail * self.lieu.ville.pays.salaire_minimum
         return salaires + self.stock.costs()
 
+    def json(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            "lieu": self.lieu.json(),
+            "heures_de_travail": self.heures_de_travail,
+            "stock": self.stock.json(),
+        }
+
 
 class Facture(models.Model):
     quantite_produits = models.ManyToManyField(QuantiteProduit)
@@ -211,3 +328,12 @@ class Facture(models.Model):
 
     def __str__(self):
         return f"Facture {self.id}"
+
+    def json(self):
+        return {
+            "id": self.id,
+            "quantite_produits": [qp.json() for qp in self.quantite_produits.all()],
+            "reduction": self.reduction,
+            "point_de_vente": self.point_de_vente.json(),
+            "client": self.client,
+        }
